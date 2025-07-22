@@ -90,7 +90,7 @@ if submit:
     st.session_state.log_df = pd.concat([st.session_state.log_df, pd.DataFrame([new_row])], ignore_index=True)
     st.success("✅ Roll logged!")
     st.session_state.reset_tiles = True
-    st.experimental_rerun()
+    st.rerun()
 
 # Display full log
 if not st.session_state.log_df.empty:
