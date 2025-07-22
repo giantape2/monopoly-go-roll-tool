@@ -25,9 +25,6 @@ def refined_multiplier(prob):
 # --- Session state setup ---
 if "log_df" not in st.session_state:
     st.session_state.log_df = pd.DataFrame(columns=["Roll","Hit","Multiplier","Note"])
-# Use a default selection key for note; initialize properly
-if "note_select" not in st.session_state:
-    st.session_state["note_select"] = None
 
 # --- Manual tile entry ---
 tile_input = st.text_input("🎯 Enter target distances (comma-separated, e.g. 2,3,7)")
@@ -43,8 +40,8 @@ else:
     prob, suggestion = 0, "1"
     st.warning("Please enter at least one valid tile distance (2–12).")
 
-# --- Note options updated ---
-note_options = sorted([
+# --- Note options with blank default + new jail options ---
+note_options = [""] + sorted([
     "Chance",
     "Chance to Railroad-Heist",
     "Chance to Railroad-Shutdown",
@@ -61,7 +58,7 @@ note_options = sorted([
 ])
 
 # --- Logging form ---
-with st.form("log_form"):
+with st.form("log_form", clear_on_submit=True):
     roll = st.selectbox("🎲 Roll outcome (2–12)", list(range(2,13)))
     auto_hit = "Yes" if roll in tiles else "No"
     hit = st.radio("🎯 Did you hit a target tile?", ["Yes","No"],
@@ -69,7 +66,7 @@ with st.form("log_form"):
     multiplier_options = ["1","2","5","10","20","50","100",">100"]
     multiplier = st.selectbox("🎲 Multiplier used", multiplier_options,
                               index=multiplier_options.index(suggestion))
-    note = st.selectbox("📝 Note", note_options, index=0)
+    note = st.selectbox("📝 Note (optional)", note_options, index=0)
     submit = st.form_submit_button("Log Entry")
 
 if submit:
@@ -79,10 +76,6 @@ if submit:
         ignore_index=True
     )
     st.success("✅ Roll logged!")
-    # Reset note selection properly
-    st.session_state["note_select"] = None
-    # Clear input fields by rerunning
-    st.experimental_rerun()
 
 # --- Display roll history ---
 if not st.session_state.log_df.empty:
