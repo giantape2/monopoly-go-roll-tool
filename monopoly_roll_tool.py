@@ -25,20 +25,18 @@ probability_map = {total: count / total_rolls for total, count in sum_counts.ite
 
 # Multiplier suggestion logic
 def refined_multiplier(prob):
-    if prob >= 0.60:
+    if prob >= 0.75:
         return ">100"
-    elif prob >= 0.50:
+    elif prob >= 0.60:
         return "100"
-    elif prob >= 0.40:
+    elif prob >= 0.50:
         return "50"
-    elif prob >= 0.30:
+    elif prob >= 0.40:
         return "20"
-    elif prob >= 0.20:
+    elif prob >= 0.30:
         return "10"
-    elif prob >= 0.10:
+    elif prob >= 0.20:
         return "5"
-    elif prob >= 0.05:
-        return "2"
     else:
         return "1"
 
