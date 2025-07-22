@@ -1,6 +1,7 @@
 import streamlit as st
 import itertools
 from collections import Counter
+import pandas as pd
 
 st.set_page_config(page_title="Monopoly GO! Roll Strategy Tool", layout="centered")
 
@@ -54,6 +55,35 @@ if selected_tiles:
     st.info(f"🎯 **Suggested Multiplier:** x{suggestion}")
 else:
     st.warning("Please select at least one tile.")
+
+# --- Logging Section ---
+st.subheader("📋 Log Your Roll Results")
+
+with st.form("log_form"):
+    roll = st.selectbox("🎲 Roll outcome (2–12)", list(range(2, 13)))
+    hit = st.radio("🎯 Did you hit a target tile?", ["Yes", "No"])
+    multiplier = st.selectbox("🎲 Multiplier used", ["1", "2", "5", "10", "20", "50", "100", ">100"])
+    note = st.text_input("📝 Notes (optional)")
+    submit = st.form_submit_button("Log Entry")
+
+# Store results in session state
+if "log_df" not in st.session_state:
+    st.session_state.log_df = pd.DataFrame(columns=["Roll", "Hit", "Multiplier", "Note"])
+
+# Add new entry
+if submit:
+    new_row = {"Roll": roll, "Hit": hit, "Multiplier": multiplier, "Note": note}
+    st.session_state.log_df = pd.concat([st.session_state.log_df, pd.DataFrame([new_row])], ignore_index=True)
+    st.success("✅ Logged successfully!")
+
+# Display table
+if not st.session_state.log_df.empty:
+    st.write("🧾 Roll History:")
+    st.dataframe(st.session_state.log_df)
+
+    # Download
+    csv = st.session_state.log_df.to_csv(index=False).encode("utf-8")
+    st.download_button("📥 Download CSV", data=csv, file_name="monopoly_roll_log.csv", mime="text/csv")
 
 # Footer
 st.markdown("""
