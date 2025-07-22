@@ -8,7 +8,7 @@ st.set_page_config(page_title="Monopoly GO! Roll Strategy Tool", layout="centere
 st.title("🎲 Monopoly GO! Roll Probability & Multiplier Tool")
 
 # --- Dice probabilities ---
-dice_rolls = list(itertools.product(range(1,7), repeat=2))
+dice_rolls = list(itertools.product(range(1, 7), repeat=2))
 sum_counts = Counter(sum(r) for r in dice_rolls)
 total_rolls = len(dice_rolls)
 probability_map = {s: c / total_rolls for s, c in sum_counts.items()}
@@ -68,29 +68,22 @@ note_options = [""] + sorted([
 # --- Logging form ---
 form = st.form("log_form", clear_on_submit=True)
 
-roll = form.selectbox("🎲 Roll outcome (2–12)", list(range(2,13)))
-auto_hit = (roll in tiles)
+roll = form.selectbox("🎲 Roll outcome (2–12)", list(range(2, 13)))
 
-hit_placeholder = form.empty()
-hit = hit_placeholder.radio(
-    "🎯 Did you hit a target tile?",
-    ["Yes", "No"],
-    index=0 if auto_hit else 1
-)
-
-multiplier_options = ["1","2","5","10","20","50","100",">100"]
+multiplier_options = ["1", "2", "5", "10", "20", "50", "100", ">100"]
 multiplier = form.selectbox(
     "🎲 Multiplier used",
     multiplier_options,
     index=multiplier_options.index(suggestion)
 )
 
-# This selectbox supports typing to filter options for quick selection :contentReference[oaicite:1]{index=1}
 note = form.selectbox("📝 Note (optional)", note_options, index=0)
 
 submit = form.form_submit_button("Log Entry")
 
 if submit:
+    auto_hit = (roll in tiles)
+    hit = "Yes" if auto_hit else "No"
     new_row = {"Roll": roll, "Hit": hit, "Multiplier": multiplier, "Note": note}
     st.session_state.log_df = pd.concat(
         [st.session_state.log_df, pd.DataFrame([new_row])],
