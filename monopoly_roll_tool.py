@@ -49,8 +49,13 @@ if "reset_tiles" not in st.session_state:
 # User selects target tiles
 st.subheader("🎯 Select your target tile distances (2 to 12 tiles ahead)")
 tile_options = list(range(2, 13))
-default_tiles = [] if st.session_state.reset_tiles else [6, 7, 8]
-selected_tiles = st.multiselect("Choose tile distances (e.g. 6, 8, 9)", tile_options, default=default_tiles, key="tile_selector")
+# Safely manage tile reset logic
+if st.session_state.reset_tiles:
+    st.session_state.tile_selector = []
+    st.session_state.reset_tiles = False
+
+selected_tiles = st.multiselect("Choose tile distances (e.g. 6, 8, 9)", tile_options, default=[6, 7, 8], key="tile_selector")
+
 
 # Calculate probability
 if selected_tiles:
