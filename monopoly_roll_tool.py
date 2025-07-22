@@ -23,8 +23,6 @@ def refined_multiplier(prob):
         return "20"
     elif prob >= 0.30:
         return "10"
-    elif prob >= 0.20:
-        return "5"
     else:
         return "1"
 
