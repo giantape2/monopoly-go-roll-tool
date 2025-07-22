@@ -42,10 +42,15 @@ def refined_multiplier(prob):
     else:
         return "1"
 
+# Session state for tile reset
+if "reset_tiles" not in st.session_state:
+    st.session_state.reset_tiles = False
+
 # User selects target tiles
 st.subheader("🎯 Select your target tile distances (2 to 12 tiles ahead)")
 tile_options = list(range(2, 13))
-selected_tiles = st.multiselect("Choose tile distances (e.g. 6, 8, 9)", tile_options, default=[6, 7, 8])
+default_tiles = [] if st.session_state.reset_tiles else [6, 7, 8]
+selected_tiles = st.multiselect("Choose tile distances (e.g. 6, 8, 9)", tile_options, default=default_tiles, key="tile_selector")
 
 # Calculate probability
 if selected_tiles:
@@ -56,9 +61,17 @@ if selected_tiles:
 else:
     st.warning("Please select at least one tile.")
 
+# Reset flag
+st.session_state.reset_tiles = False
+
 # --- Logging Section ---
 st.subheader("📋 Log Your Roll Results")
 
+# Initialize session state for logs
+if "log_df" not in st.session_state:
+    st.session_state.log_df = pd.DataFrame(columns=["Roll", "Hit", "Multiplier", "Note"])
+
+# Logging form
 with st.form("log_form"):
     roll = st.selectbox("🎲 Roll outcome (2–12)", list(range(2, 13)))
     hit = st.radio("🎯 Did you hit a target tile?", ["Yes", "No"])
@@ -66,22 +79,20 @@ with st.form("log_form"):
     note = st.text_input("📝 Notes (optional)")
     submit = st.form_submit_button("Log Entry")
 
-# Store results in session state
-if "log_df" not in st.session_state:
-    st.session_state.log_df = pd.DataFrame(columns=["Roll", "Hit", "Multiplier", "Note"])
-
-# Add new entry
+# Handle form submission
 if submit:
     new_row = {"Roll": roll, "Hit": hit, "Multiplier": multiplier, "Note": note}
     st.session_state.log_df = pd.concat([st.session_state.log_df, pd.DataFrame([new_row])], ignore_index=True)
-    st.success("✅ Logged successfully!")
+    st.success("✅ Roll logged!")
+    st.session_state.reset_tiles = True
+    st.experimental_rerun()
 
-# Display table
+# Display full log
 if not st.session_state.log_df.empty:
     st.write("🧾 Roll History:")
     st.dataframe(st.session_state.log_df)
 
-    # Download
+    # Download CSV
     csv = st.session_state.log_df.to_csv(index=False).encode("utf-8")
     st.download_button("📥 Download CSV", data=csv, file_name="monopoly_roll_log.csv", mime="text/csv")
 
