@@ -70,6 +70,14 @@ form = st.form("log_form", clear_on_submit=True)
 
 roll = form.selectbox("🎲 Roll outcome (2–12)", list(range(2, 13)))
 
+# Compute automatic hit early
+auto_hit = (roll in tiles)
+hit = form.selectbox(
+    "🎯 Did you hit a target tile?",
+    ["No", "Yes"],
+    index=1 if auto_hit else 0
+)
+
 multiplier_options = ["1", "2", "5", "10", "20", "50", "100", ">100"]
 multiplier = form.selectbox(
     "🎲 Multiplier used",
@@ -82,8 +90,6 @@ note = form.selectbox("📝 Note (optional)", note_options, index=0)
 submit = form.form_submit_button("Log Entry")
 
 if submit:
-    auto_hit = (roll in tiles)
-    hit = "Yes" if auto_hit else "No"
     new_row = {"Roll": roll, "Hit": hit, "Multiplier": multiplier, "Note": note}
     st.session_state.log_df = pd.concat(
         [st.session_state.log_df, pd.DataFrame([new_row])],
