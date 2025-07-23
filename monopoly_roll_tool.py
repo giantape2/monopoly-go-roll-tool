@@ -31,49 +31,50 @@ def refined_multiplier(prob):
     else:
         return "1"
 
-# --- Session state for log and tiles ---
+# --- Initialize session state ---
 if "log_df" not in st.session_state:
     st.session_state.log_df = pd.DataFrame(columns=["Roll", "Hit", "Multiplier", "Note"])
 if "tiles" not in st.session_state:
     st.session_state.tiles = []
+if "prob" not in st.session_state:
+    st.session_state.prob = 0.0
+if "suggestion" not in st.session_state:
+    st.session_state.suggestion = "1"
 
-# --- Target tile input form ---
-with st.form("tile_entry_form"):
-    tile_input = st.text_input("🎯 Enter target distances (comma-separated, e.g. 2,3,7)")
-    submit_tiles = st.form_submit_button("Confirm Targets")
+# --- Tile Input and Manual Trigger ---
+st.subheader("🎯 Target Tile Distance Setup")
+with st.form("tile_form"):
+    tile_input = st.text_input("Enter target distances (comma-separated, e.g. 2,3,7)", value="")
 
-if submit_tiles:
-    try:
-        tiles = sorted({
-            int(x.strip())
-            for x in tile_input.split(",")
-            if x.strip().isdigit() and 2 <= int(x) <= 12
-        })
-    except:
-        tiles = []
+    calc_btn = st.form_submit_button("🔄 Calculate Probability")
 
-    if tiles != st.session_state.tiles:
+    if calc_btn:
+        try:
+            tiles = sorted({
+                int(x.strip())
+                for x in tile_input.split(",")
+                if x.strip().isdigit() and 2 <= int(x) <= 12
+            })
+        except:
+            tiles = []
+
         st.session_state.tiles = tiles
+        st.session_state.prob = sum(probability_map.get(t, 0) for t in tiles)
+        st.session_state.suggestion = refined_multiplier(st.session_state.prob)
 
-# --- Use tiles from session state ---
-tiles = st.session_state.tiles
-
-# --- Display probability and multiplier ---
-prob_placeholder = st.empty()
-multiplier_placeholder = st.empty()
-
-if tiles:
-    prob = sum(probability_map.get(t, 0) for t in tiles)
-    suggestion = refined_multiplier(prob)
-    prob_placeholder.success(f"🧮 Landing Probability: {prob * 100:.2f}%")
-    multiplier_placeholder.info(f"🎯 Suggested Multiplier: x{suggestion}")
+# --- Probability Display ---
+st.subheader("📊 Probability & Multiplier")
+if st.session_state.tiles:
+    st.success(f"🧮 Landing Probability: {st.session_state.prob * 100:.2f}%")
+    st.info(f"🎯 Suggested Multiplier: x{st.session_state.suggestion}")
 else:
-    prob, suggestion = 0, "1"
-    prob_placeholder.warning("Please enter at least one valid tile distance (2–12) and press Confirm.")
+    st.warning("Please enter tile numbers between 2–12 above and press 'Calculate'.")
 
-# --- Roll input and hit status ---
+# --- Roll & Log Section ---
+st.subheader("📝 Roll Logging")
+
 roll = st.selectbox("🎲 Roll outcome (2–12)", list(range(2, 13)))
-auto_hit = roll in tiles
+auto_hit = roll in st.session_state.tiles
 hit = st.radio(
     "🎯 Did you hit your target tile?",
     ["Yes", "No"],
@@ -81,7 +82,6 @@ hit = st.radio(
     horizontal=True
 )
 
-# --- Notes dropdown ---
 note_options = [""] + sorted([
     "Chance", "Chance to Railroad-Bankrupt Heist", "Chance to Railroad-Large Heist",
     "Chance to Railroad-Mega Heist", "Chance to Railroad-Small Heist",
@@ -96,11 +96,10 @@ note_options = [""] + sorted([
 # --- Log entry form ---
 with st.form("log_form", clear_on_submit=True):
     multiplier_options = ["1", "2", "5", "10", "20", "50", "100", ">100"]
-    multiplier = st.selectbox("🎲 Multiplier used", multiplier_options, index=multiplier_options.index(suggestion))
+    multiplier = st.selectbox("🎲 Multiplier used", multiplier_options, index=multiplier_options.index(st.session_state.suggestion))
     note = st.selectbox("📝 Note (optional)", note_options, index=0)
     submit = st.form_submit_button("Log Entry")
 
-# --- Handle logging ---
 if submit:
     new_row = {"Roll": roll, "Hit": hit, "Multiplier": multiplier, "Note": note}
     st.session_state.log_df = pd.concat(
@@ -109,7 +108,7 @@ if submit:
     )
     st.success("✅ Roll logged locally!")
 
-# --- Roll history and download ---
+# --- Display log history and CSV download ---
 if not st.session_state.log_df.empty:
     with st.expander("🧾 Roll History", expanded=True):
         st.dataframe(st.session_state.log_df)
