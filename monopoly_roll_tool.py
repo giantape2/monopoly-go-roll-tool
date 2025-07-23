@@ -7,11 +7,16 @@ import pandas as pd
 st.set_page_config(page_title="Monopoly GO! Roll Strategy Tool", layout="centered")
 st.title("🎲 Monopoly GO! Roll Probability & Multiplier Tool")
 
-# --- Dice probabilities setup ---
-dice_rolls = list(itertools.product(range(1, 7), repeat=2))
-sum_counts = Counter(sum(r) for r in dice_rolls)
-probability_map = {s: c / len(dice_rolls) for s, c in sum_counts.items()}
+# --- Cached dice probability map ---
+@st.cache_data
+def get_probability_map():
+    dice_rolls = list(itertools.product(range(1, 7), repeat=2))
+    sum_counts = Counter(sum(r) for r in dice_rolls)
+    return {s: c / len(dice_rolls) for s, c in sum_counts.items()}
 
+probability_map = get_probability_map()
+
+# --- Multiplier logic ---
 def refined_multiplier(prob):
     if prob >= 0.75:
         return ">100"
@@ -26,19 +31,30 @@ def refined_multiplier(prob):
     else:
         return "1"
 
-# --- State for local log history ---
+# --- Session state for log ---
 if "log_df" not in st.session_state:
     st.session_state.log_df = pd.DataFrame(columns=["Roll", "Hit", "Multiplier", "Note"])
 
-# --- Enter target distances ---
-tile_input = st.text_input("🎯 Enter target distances (comma-separated, e.g. 2,3,7)")
-tiles = sorted({
-    int(x.strip())
-    for x in tile_input.split(",")
-    if x.strip().isdigit() and 2 <= int(x) <= 12
-})
+# --- Target tile input form ---
+with st.form("tile_entry_form"):
+    tile_input = st.text_input("🎯 Enter target distances (comma-separated, e.g. 2,3,7)")
+    submit_tiles = st.form_submit_button("Confirm Targets")
 
-# Compute probability and suggested multiplier
+if submit_tiles:
+    try:
+        tiles = sorted({
+            int(x.strip())
+            for x in tile_input.split(",")
+            if x.strip().isdigit() and 2 <= int(x) <= 12
+        })
+    except:
+        tiles = []
+    st.session_state.tiles = tiles
+
+# --- Retrieve confirmed tiles ---
+tiles = st.session_state.get("tiles", [])
+
+# --- Display landing probability and multiplier ---
 if tiles:
     prob = sum(probability_map.get(t, 0) for t in tiles)
     suggestion = refined_multiplier(prob)
@@ -46,9 +62,9 @@ if tiles:
     st.info(f"🎯 Suggested Multiplier: x{suggestion}")
 else:
     prob, suggestion = 0, "1"
-    st.warning("Please enter at least one valid tile distance (2–12).")
+    st.warning("Please enter at least one valid tile distance (2–12) and press Confirm.")
 
-# --- Roll outcome & hit status ---
+# --- Roll input and hit status ---
 roll = st.selectbox("🎲 Roll outcome (2–12)", list(range(2, 13)))
 auto_hit = roll in tiles
 hit = st.radio(
@@ -58,7 +74,7 @@ hit = st.radio(
     horizontal=True
 )
 
-# --- Note dropdown ---
+# --- Notes dropdown ---
 note_options = [""] + sorted([
     "Chance", "Chance to Railroad-Bankrupt Heist", "Chance to Railroad-Large Heist",
     "Chance to Railroad-Mega Heist", "Chance to Railroad-Small Heist",
@@ -77,7 +93,7 @@ with st.form("log_form", clear_on_submit=True):
     note = st.selectbox("📝 Note (optional)", note_options, index=0)
     submit = st.form_submit_button("Log Entry")
 
-# --- Handle form submission ---
+# --- Handle logging ---
 if submit:
     new_row = {"Roll": roll, "Hit": hit, "Multiplier": multiplier, "Note": note}
     st.session_state.log_df = pd.concat(
@@ -86,7 +102,7 @@ if submit:
     )
     st.success("✅ Roll logged locally!")
 
-# --- Display log history & download option ---
+# --- Display log history and download option ---
 if not st.session_state.log_df.empty:
     st.write("🧾 Roll History:")
     st.dataframe(st.session_state.log_df)
